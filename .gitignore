@@ -1,0 +1,7 @@
+.DS_Store
+Gopkg.lock
+Gopkg.toml
+vendor/
+accountservice/.DS_Store
+loadtest/.DS_Store
+loadtest/target/

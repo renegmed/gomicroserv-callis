@@ -1,0 +1,4 @@
+
+$> cd loadtest
+$> mvn gatling:execute -Dusers=1000 -Dduration=30 -DbaseUrl=http://localhost:6767
+
