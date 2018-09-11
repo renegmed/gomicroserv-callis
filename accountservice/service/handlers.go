@@ -3,7 +3,9 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"microservice-callista/accountservice/dbclient"
+	"microservice-callista/accountservice/model"
 	"net"
 	"net/http"
 	"strconv"
@@ -18,6 +20,20 @@ type healthCheckResponse struct {
 var DBClient dbclient.IBoltClient
 
 var isHealthy = true
+
+var client = &http.Client{}
+
+// init method will make sure any outgoing HTTP request issued by
+// the client instance will have the appropriate headers making
+// the Docker Swarm-base load balancing work as expected.
+func init() {
+	// so as not to cause load-balancing problems, Connection:Keep-Alive should
+	// be configured
+	var transport http.RoundTripper = &http.Transport{
+		DisableKeepAlives: true,
+	}
+	client.Transport = transport
+}
 
 func GetAccount(w http.ResponseWriter, r *http.Request) {
 
@@ -36,12 +52,32 @@ func GetAccount(w http.ResponseWriter, r *http.Request) {
 
 	account.ServedBy = getIP()
 
+	// NEW call the quotes-service
+	quote, err := getQuote()
+	if err == nil {
+		account.Quote = quote
+	}
+
 	// If found, marshal into JSON, write headers and content
 	data, _ := json.Marshal(account)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
+
+func getQuote() (model.Quote, error) {
+	req, _ := http.NewRequest("GET", "http://quotes-service:8080/api/quote?strength=4", nil)
+	resp, err := client.Do(req)
+
+	if err == nil && resp.StatusCode == 200 {
+		quote := model.Quote{}
+		bytes, _ := ioutil.ReadAll(resp.Body)
+		json.Unmarshal(bytes, &quote)
+		return quote, nil
+	} else {
+		return model.Quote{}, fmt.Errorf("Some error")
+	}
 }
 
 func HealthCheck(w http.ResponseWriter, r *http.Request) {

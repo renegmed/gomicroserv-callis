@@ -91,6 +91,23 @@ and immediately decided the service had become unhealthy and need to be replaced
 fresh instance of accountservice. This happened without any administrator intervention
 
 
+DISCOVERY and LOAD BALANCING
+
+> ./copyall.sh
+
+> docker service create --name=quotes-service --replicas=1 --network=callista eriklupander/quotes-service
+
+> docker service ls
+
+> docker service scale accountservice=3
+
+> docker service scale quotes-service=2
+
+> docker service ls
+
+> curl $ManagerIP:6767/accounts/10000
+
+
 
 
  

@@ -9,7 +9,14 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	gock "gopkg.in/h2non/gock.v1"
 )
+
+// This function will make sure http client instance
+// is intercepted properly by gock
+func init() {
+	gock.InterceptClient(client)
+}
 
 func TestGetAccount(t *testing.T) {
 	mockRepo := &dbclient.MockBoltClient{}
@@ -61,6 +68,36 @@ func TestGetAccountWrongPath(t *testing.T) {
 
 			Convey("Then the response should be a 404", func() {
 				So(resp.Code, ShouldEqual, 404)
+			})
+		})
+	})
+}
+
+func TestGetAccountNoQuote(t *testing.T) {
+	defer gock.Off()
+	gock.New("http://quotes-service:8080").
+		Get("/api/quote").
+		MatchParam("strength", "4").
+		Reply(500)
+
+	mockRepo := &dbclient.MockBoltClient{}
+	mockRepo.On("QueryAccount", "123").Return(model.Account{Id: "123", Name: "Person_123"}, nil)
+
+	Convey("Given a HTTP request for /accounts/123", t, func() {
+		req := httptest.NewRequest("GET", "/accounts/123", nil)
+		resp := httptest.NewRecorder()
+
+		Convey("When the request is handled by the Router", func() {
+			NewRouter().ServeHTTP(resp, req)
+
+			Convey("Then the response should be a 200", func() {
+				So(resp.Code, ShouldEqual, 200)
+
+				account := model.Account{}
+				json.Unmarshal(resp.Body.Bytes(), &account)
+				So(account.Id, ShouldEqual, "123")
+				So(account.Name, ShouldEqual, "Person_123")
+				So(account.Quote, ShouldBeZeroValue)
 			})
 		})
 	})
