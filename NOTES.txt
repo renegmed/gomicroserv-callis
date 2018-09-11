@@ -1,4 +1,51 @@
+# Swarm
+# docker-machine ls
+# docker-machine create swarm-manager-1
+# docker-machine start swarm-manager-1
+# docker-machine leave swarm-manager-1
+# docker-machine stop swarm-manager-1
+# docker-machine rm swarm-manager-1
 
-$> cd loadtest
-$> mvn gatling:execute -Dusers=1000 -Dduration=30 -DbaseUrl=http://localhost:6767
 
+docker-machine create \
+  --driver virtualbox \
+  --virtualbox-cpu-count 2 \
+  --virtualbox-memory 2048 \
+  --virtualbox-disk-size 20000 \
+  swarm-manager-1
+
+docker-machine ls
+
+# These commands creates a swarm manager instance for us running on 
+# Virtualbox with 2 CPUs and 2 GB of RAM and then made it a Docker Swarm manager node.
+
+docker $(docker-machine config swarm-manager-1) swarm init --advertise-addr $(docker-machine ip swarm-manager-1)
+
+eval $(docker-machine env swarm-manager-1)
+
+docker service ls 
+
+docker network ls
+
+docker network create --driver overlay callista
+
+docker build -t app/accountservice accountservice/
+
+docker images
+
+docker service create --name=accountservice --replicas=1 --network=callista -p=6767:6767 app/accountservice 
+
+docker service ls
+
+docker service logs accountservice
+
+docker ps 
+
+echo $(docker-machine ip swarm-manager-1)
+export ManagerIP=`docker-machine ip swarm-manager-1`
+
+
+
+
+
+ 

@@ -3,5 +3,6 @@ Gopkg.lock
 Gopkg.toml
 vendor/
 accountservice/.DS_Store
+accountservice/accountservice-linux-amd64
 loadtest/.DS_Store
 loadtest/target/
