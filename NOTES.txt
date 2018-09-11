@@ -6,6 +6,8 @@
 # docker-machine stop swarm-manager-1
 # docker-machine rm swarm-manager-1
 
+SETUP STAGE 
+
 
 docker-machine create \
   --driver virtualbox \
@@ -20,6 +22,14 @@ docker-machine ls
 # Virtualbox with 2 CPUs and 2 GB of RAM and then made it a Docker Swarm manager node.
 
 docker $(docker-machine config swarm-manager-1) swarm init --advertise-addr $(docker-machine ip swarm-manager-1)
+Swarm initialized: current node (v8h5lfrakp9kypu774yp6fp8u) is now a manager.
+
+To add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-15cb495khb34xybnpqeqvk1xx745aim5xukkf1cekvqwgf5wkn-6x9vdylr8ot5nqpvelwq0m4j8 192.168.99.100:2377
+
+To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+
 
 eval $(docker-machine env swarm-manager-1)
 
@@ -28,6 +38,11 @@ docker service ls
 docker network ls
 
 docker network create --driver overlay callista
+
+
+DEPLOYMENT STAGE
+
+
 
 docker build -t app/accountservice accountservice/
 
@@ -44,6 +59,36 @@ docker ps
 echo $(docker-machine ip swarm-manager-1)
 export ManagerIP=`docker-machine ip swarm-manager-1`
 
+
+HEALTH CHECK TEST
+
+> cd accountservice
+
+> go run *.go
+
+Separate terminal
+
+> cd healthchecker
+
+> go run *.go -port=6767
+
+REBUILD and RUN 
+
+> copyall.sh
+
+TO Verify healthcheck is working, simulate a failure of 
+accountservice (after 3 retries) would result to a new accountservice instance
+
+> curl $ManagerIP:6767/testability/healthy/false
+
+> docker ps
+
+After a few seconds, a new accountservice is created 
+
+A brand new CONTAINER ID and new timestamps on CREATED and STATUS. What happened was that 
+Docker Swarm detected three (default values for -retries) consecutive failed healthchecks 
+and immediately decided the service had become unhealthy and need to be replaced with a 
+fresh instance of accountservice. This happened without any administrator intervention
 
 
 
