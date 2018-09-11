@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"microservice-callista/accountservice/dbclient"
+	"net"
 	"net/http"
 	"strconv"
 
@@ -32,6 +33,8 @@ func GetAccount(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+
+	account.ServedBy = getIP()
 
 	// If found, marshal into JSON, write headers and content
 	data, _ := json.Marshal(account)
@@ -71,4 +74,20 @@ func writeJsonResponse(w http.ResponseWriter, status int, data []byte) {
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	w.WriteHeader(status)
 	w.Write(data)
+}
+
+func getIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "error"
+	}
+	for _, address := range addrs {
+		// check the address type and if it is not a loopback the display it
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+	panic("Unable to determine local IP address (non loopback). Exiting.")
 }
